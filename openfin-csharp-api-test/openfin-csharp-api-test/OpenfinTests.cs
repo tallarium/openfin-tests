@@ -21,6 +21,8 @@ namespace OpenfinDesktop
         public const string OPENFIN_ADAPTER_RUNTIME = "19.89.59.24";
         public string OPENFIN_APP_RUNTIME = "";
 
+        public int APP_LOAD_TIMEOUT_MS = 30000;
+
         private bool shareRuntime
         {
             get => OPENFIN_APP_RUNTIME == OPENFIN_ADAPTER_RUNTIME;
@@ -308,8 +310,7 @@ const bounds = {{
         [Test]
         public void AppHasDefaultSize()
         {
-            StartOpenfinApp();
-
+            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
             var bounds = getWindowBounds();
             Assert.AreEqual(600, bounds["width"]);
             Assert.AreEqual(600, bounds["height"]);
@@ -318,7 +319,7 @@ const bounds = {{
         [Test]
         public void ResizeWindow()
         {
-            StartOpenfinApp();
+            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
             setWindowBounds(100, 150, 200, 300);
             var bounds = getWindowBounds();
             Assert.AreEqual(100, bounds["left"]);
@@ -331,7 +332,7 @@ const bounds = {{
         [Test]
         public void RestoreSnapshot()
         {
-            StartOpenfinApp();
+            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
             int newLeft = 100;
             int newTop = 150;
             int newWidth = 200;
@@ -345,7 +346,7 @@ const bounds = {{
 ";
             string snapshot = driver.ExecuteScript(createSnapshotScript) as string;
             StopOpenfinApp();
-            StartOpenfinApp();
+            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
 
             // Reloads with default size
             var bounds = getWindowBounds();
@@ -379,6 +380,15 @@ await platform.applySnapshot(snapshot);
                 driver.Quit();
             }
             driver = null;
+        }
+
+        public async Task StartAppAndWaitForWindow()
+        {
+            Application app = await GetApplication(OPENFIN_APP_UUID);
+            var windowLoaded = new TaskCompletionSource<bool>();
+            app.WindowCreated += (obj, args) => { if (args.Window.Name == OPENFIN_APP_UUID) { windowLoaded.SetResult(true); } };
+            StartOpenfinApp();
+            await windowLoaded.Task;
         }
 
         [TearDown]
