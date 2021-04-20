@@ -1,14 +1,10 @@
 using NUnit.Framework;
 using Openfin.Desktop;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Remote;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -21,7 +17,7 @@ namespace OpenfinDesktop
         public const string OPENFIN_ADAPTER_RUNTIME = "19.89.59.24";
         public string OPENFIN_APP_RUNTIME = "";
 
-        public int APP_LOAD_TIMEOUT_MS = 30000;
+        public int APP_LOAD_TIMEOUT_MS = 60000;
 
         private bool shareRuntime
         {
@@ -310,7 +306,7 @@ const bounds = {{
         [Test]
         public void AppHasDefaultSize()
         {
-            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
+            StartAppAndWaitForWindow();
             var bounds = getWindowBounds();
             Assert.AreEqual(600, bounds["width"]);
             Assert.AreEqual(600, bounds["height"]);
@@ -319,7 +315,7 @@ const bounds = {{
         [Test]
         public void ResizeWindow()
         {
-            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
+            StartAppAndWaitForWindow();
             setWindowBounds(100, 150, 200, 300);
             var bounds = getWindowBounds();
             Assert.AreEqual(100, bounds["left"]);
@@ -332,7 +328,7 @@ const bounds = {{
         [Test]
         public void RestoreSnapshot()
         {
-            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
+            StartAppAndWaitForWindow();
             int newLeft = 100;
             int newTop = 150;
             int newWidth = 200;
@@ -346,7 +342,7 @@ const bounds = {{
 ";
             string snapshot = driver.ExecuteScript(createSnapshotScript) as string;
             StopOpenfinApp();
-            StartAppAndWaitForWindow().Wait(APP_LOAD_TIMEOUT_MS);
+            StartAppAndWaitForWindow();
 
             // Reloads with default size
             var bounds = getWindowBounds();
@@ -382,13 +378,18 @@ await platform.applySnapshot(snapshot);
             driver = null;
         }
 
-        public async Task StartAppAndWaitForWindow()
+        public void StartAppAndWaitForWindow()
         {
-            Application app = await GetApplication(OPENFIN_APP_UUID);
+            var getAppTask = GetApplication(OPENFIN_APP_UUID);
+            getAppTask.Wait();
+            Application app = getAppTask.Result;
             var windowLoaded = new TaskCompletionSource<bool>();
             app.WindowCreated += (obj, args) => { if (args.Window.Name == OPENFIN_APP_UUID) { windowLoaded.SetResult(true); } };
             StartOpenfinApp();
-            await windowLoaded.Task;
+            if(!windowLoaded.Task.Wait(APP_LOAD_TIMEOUT_MS))
+            {
+                Assert.Fail($"Application did not load in less than {APP_LOAD_TIMEOUT_MS} ms");
+            }
         }
 
         [TearDown]
