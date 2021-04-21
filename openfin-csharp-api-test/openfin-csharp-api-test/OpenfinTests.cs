@@ -17,7 +17,7 @@ namespace OpenfinDesktop
         public const string OPENFIN_ADAPTER_RUNTIME = "19.89.59.24";
         public string OPENFIN_APP_RUNTIME = "";
 
-        public int APP_LOAD_TIMEOUT_MS = 60000;
+        public int APP_WINDOW_LOAD_TIMEOUT_MS = 30000;
 
         private bool shareRuntime
         {
@@ -98,6 +98,17 @@ namespace OpenfinDesktop
             {
                 // Error
                 taskCompletionSource.SetException(new Exception(ack.getJsonObject().ToString()));
+            });
+            return taskCompletionSource.Task;
+        }
+
+        private Task<bool> WindowsWereCreated(Application app)
+        {
+            var taskCompletionSource = new TaskCompletionSource<bool>();
+
+            app.getChildWindows((children) =>
+            {
+                taskCompletionSource.SetResult(children?.Count > 0);
             });
             return taskCompletionSource.Task;
         }
@@ -383,13 +394,18 @@ await platform.applySnapshot(snapshot);
             var getAppTask = GetApplication(OPENFIN_APP_UUID);
             getAppTask.Wait();
             Application app = getAppTask.Result;
-            var windowLoaded = new TaskCompletionSource<bool>();
-            app.WindowCreated += (obj, args) => { if (args.Window.Name == OPENFIN_APP_UUID) { windowLoaded.SetResult(true); } };
             StartOpenfinApp();
-            if(!windowLoaded.Task.Wait(APP_LOAD_TIMEOUT_MS))
+            WindowIsEventuallyOpen(app, APP_WINDOW_LOAD_TIMEOUT_MS).Wait();
+        }
+
+        private async Task<bool> WindowIsEventuallyOpen(Application app, int timeout)
+        {
+            return await IsEventually(() =>
             {
-                Assert.Fail($"Application did not load in less than {APP_LOAD_TIMEOUT_MS} ms");
-            }
+                Task<bool> windowsWereCreatedCheck = WindowsWereCreated(app);
+                windowsWereCreatedCheck.Wait();
+                return windowsWereCreatedCheck.Result;
+            }, true, timeout);
         }
 
         [TearDown]
