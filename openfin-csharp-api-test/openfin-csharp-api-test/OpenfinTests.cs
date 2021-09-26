@@ -1,14 +1,10 @@
 using NUnit.Framework;
 using Openfin.Desktop;
-using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
-using OpenQA.Selenium.Remote;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,8 +14,10 @@ namespace OpenfinDesktop
     {
         private const string OPENFIN_APP_UUID = "openfin-tests";
 
-        public const string OPENFIN_ADAPTER_RUNTIME = "16.83.53.26";
+        public const string OPENFIN_ADAPTER_RUNTIME = "19.89.59.24";
         public string OPENFIN_APP_RUNTIME = "";
+
+        public int APP_WINDOW_LOAD_TIMEOUT_MS = 30000;
 
         private bool shareRuntime
         {
@@ -100,6 +98,17 @@ namespace OpenfinDesktop
             {
                 // Error
                 taskCompletionSource.SetException(new Exception(ack.getJsonObject().ToString()));
+            });
+            return taskCompletionSource.Task;
+        }
+
+        private Task<bool> WindowsWereCreated(Application app)
+        {
+            var taskCompletionSource = new TaskCompletionSource<bool>();
+
+            app.getChildWindows((children) =>
+            {
+                taskCompletionSource.SetResult(children?.Count > 0);
             });
             return taskCompletionSource.Task;
         }
@@ -308,8 +317,7 @@ const bounds = {{
         [Test]
         public void AppHasDefaultSize()
         {
-            StartOpenfinApp();
-
+            StartAppAndWaitForWindow();
             var bounds = getWindowBounds();
             Assert.AreEqual(600, bounds["width"]);
             Assert.AreEqual(600, bounds["height"]);
@@ -318,7 +326,7 @@ const bounds = {{
         [Test]
         public void ResizeWindow()
         {
-            StartOpenfinApp();
+            StartAppAndWaitForWindow();
             setWindowBounds(100, 150, 200, 300);
             var bounds = getWindowBounds();
             Assert.AreEqual(100, bounds["left"]);
@@ -331,7 +339,7 @@ const bounds = {{
         [Test]
         public void RestoreSnapshot()
         {
-            StartOpenfinApp();
+            StartAppAndWaitForWindow();
             int newLeft = 100;
             int newTop = 150;
             int newWidth = 200;
@@ -345,7 +353,7 @@ const bounds = {{
 ";
             string snapshot = driver.ExecuteScript(createSnapshotScript) as string;
             StopOpenfinApp();
-            StartOpenfinApp();
+            StartAppAndWaitForWindow();
 
             // Reloads with default size
             var bounds = getWindowBounds();
@@ -379,6 +387,25 @@ await platform.applySnapshot(snapshot);
                 driver.Quit();
             }
             driver = null;
+        }
+
+        public void StartAppAndWaitForWindow()
+        {
+            var getAppTask = GetApplication(OPENFIN_APP_UUID);
+            getAppTask.Wait();
+            Application app = getAppTask.Result;
+            StartOpenfinApp();
+            WindowIsEventuallyOpen(app, APP_WINDOW_LOAD_TIMEOUT_MS).Wait();
+        }
+
+        private async Task<bool> WindowIsEventuallyOpen(Application app, int timeout)
+        {
+            return await IsEventually(() =>
+            {
+                Task<bool> windowsWereCreatedCheck = WindowsWereCreated(app);
+                windowsWereCreatedCheck.Wait();
+                return windowsWereCreatedCheck.Result;
+            }, true, timeout);
         }
 
         [TearDown]
