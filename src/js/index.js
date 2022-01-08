@@ -34,35 +34,9 @@ function runMyAsset() {
     })
 }
 
-function downloadV2() {
-    const appAsset = {
-        "src": "http://localhost:9070/assets/assetv2.zip",
-        "alias": "myAsset",
-        "version": "2.0",
-        "target": "echo.vbs"
-    };
-    return new Promise((resolve, reject) => {
-        fin.desktop.System.downloadAsset(appAsset, progress => {
-            //Print progress as we download the asset.
-            const downloadedPercent = Math.floor((progress.downloadedBytes / progress.totalBytes) * 100);
-            console.log(`Downloaded ${downloadedPercent}%`);
-        }, () => {
-            //asset download complete, launch
-            resolve(appAsset);
-        }, (reason, error) => {
-            //Failed the download.
-            console.log(reason, error);
-            reject(reason);
-        });
-    })
-}
-
 async function initWithOpenFin(){
-    alert("OpenFin is available");
     await runMyAsset();
-    await downloadV2();
-    await runMyAsset();
-    // Your OpenFin specific code to go here...
+    alert('Done');
 }
 
 function initNoOpenFin(){

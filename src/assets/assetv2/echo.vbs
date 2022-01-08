@@ -1,1 +1,0 @@
-Wscript.Echo "v2"
