@@ -1,5 +1,21 @@
 # OpenFin How To: Hello World
 
+## Bug
+If the web process is blocked after launching external process the listener is never fired
+
+Reproduction:
+- Start the OpenFin application
+
+Expected results
+- `Done` alert appears after a few seconds
+
+Actual results
+- No alert appears
+
+If the `await addExternalProcessListener();` line is uncommented out, `Done` appears as expected.
+
+Relates to https://openfin.zendesk.com/hc/en-us/requests/6505
+
 ## Prerequisites
 
 You will need:
