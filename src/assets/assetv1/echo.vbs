@@ -1,1 +1,1 @@
-Wscript.Echo "v1"
+Wscript.Sleep 500
