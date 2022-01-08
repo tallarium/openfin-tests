@@ -30,8 +30,20 @@ function runMyAsset() {
             console.log('Error:', error);
             reject(error);
         });
-
+        blockCpu();
     })
+}
+
+function blockCpu() {
+    console.log("blocked");
+    const start =new Date();
+    let result =0;
+    do {
+        result +=Math.random() *Math.random();
+    }
+    while(new Date() -start < 2000);
+    console.log("unblocked");
+    return result;
 }
 
 async function initWithOpenFin(){
