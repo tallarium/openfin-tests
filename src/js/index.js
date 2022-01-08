@@ -46,7 +46,23 @@ function blockCpu() {
     return result;
 }
 
+async function addExternalProcessListener() {
+    const finWindow = fin.desktop.Window.getCurrent();
+    return new Promise(resolve => finWindow.addEventListener("external-process-exited", function (event) {
+        console.log("external-process-exited", event);
+    }, function () {
+        console.log("Registered external-process-exited handler");
+        resolve();
+    },function (reason) {
+        console.log("Failed to register external-process-handler" + reason);
+    }));
+}
+
 async function initWithOpenFin(){
+    /* Uncommenting this "fixes" runMyAsset listener firing after we are no longer blocked
+    *  However it throws as "TypeError: p is not a function" */
+    // await addExternalProcessListener();
+
     await runMyAsset();
     alert('Done');
 }
