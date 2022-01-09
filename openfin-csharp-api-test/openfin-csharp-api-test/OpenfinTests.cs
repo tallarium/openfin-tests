@@ -61,7 +61,7 @@ namespace OpenfinDesktop
             var taskCompletionSource = new TaskCompletionSource<Runtime>();
 
             RuntimeOptions options = new RuntimeOptions();
-            options.Version = "14.78.46.23";
+            options.Version = "23.96.67.7";
             options.Arguments = "--remote-debugging-port=4444";
             runtime = Openfin.Desktop.Runtime.GetRuntimeInstance(options);
             runtime.Connect(() =>
