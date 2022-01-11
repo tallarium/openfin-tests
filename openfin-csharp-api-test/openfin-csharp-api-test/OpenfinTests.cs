@@ -14,7 +14,7 @@ namespace OpenfinDesktop
     {
         private const string OPENFIN_APP_UUID = "openfin-tests";
 
-        public const string OPENFIN_ADAPTER_RUNTIME = "19.89.59.24";
+        public const string OPENFIN_ADAPTER_RUNTIME = "23.96.67.7";
         public string OPENFIN_APP_RUNTIME = "";
 
         public int APP_WINDOW_LOAD_TIMEOUT_MS = 30000;
