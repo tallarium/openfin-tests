@@ -135,94 +135,6 @@ namespace OpenfinDesktop
             return await checkIsRunningTask;
         }
 
-        private async Task<bool> AppIsEventuallyRunning(Application app, bool expectedState, int timeout)
-        {
-            return await IsEventually(() =>
-            {
-                Task<bool> isRunningTask = AppIsRunning(app);
-                isRunningTask.Wait();
-                return isRunningTask.Result;
-            }, expectedState, timeout);
-        }
-
-        /* Would prefer to use for inspecting and resizing windows but driver currently raises an exception
-         * e.g.
-         *         public void ResizeUsingChromeDriver()
-        {
-            StartOpenfinApp();
-            IWindow window = driver.Manage().Window;
-            Point initialPos = window.Position; // Crashes here - Browser window not found
-            Point newPos = new Point(initialPos.X + 75, initialPos.Y + 180);
-            window.Position = newPos;
-        }
-         * Use OpenFin Javasript API instead
-        */
-        private Dictionary<string, object> getWindowBounds()
-        {
-            var script = $@"
-const app = fin.Application.getCurrentSync();
-// const win = await app.getWindow(); Not actually the app window.  Probably the hidden Provider window
-const childWindows = await app.getChildWindows()
-const childWin = childWindows[0];
-const bounds = await childWin.getBounds();
-return bounds;
-";
-            return driver.ExecuteScript(script) as Dictionary<string, object>;
-        }
-
-        private void setWindowBounds(int left, int top, int width, int height)
-        {
-            var script = $@"
-const app = fin.Application.getCurrentSync();
-// const win = await app.getWindow(); Not actually the app window.  Probably the hidden Provider window
-const childWindows = await app.getChildWindows()
-const childWin = childWindows[0];
-const bounds = {{
-    height: {height},
-    width: {width},
-    top: {top},
-    left: {left}
-}}
-    await childWin.setBounds(bounds);
-";
-            driver.ExecuteScript(script);
-        }
-
-        [Test]
-        public async Task IsRunningInitiallyClosed()
-        {
-
-            Application app = await GetApplication(OPENFIN_APP_UUID);
-            bool isRunning = await AppIsEventuallyRunning(app, false, 1000);
-
-            Assert.IsFalse(isRunning, "App isRunning (Initially)");
-            StartOpenfinApp();
-            isRunning = await AppIsEventuallyRunning(app, true, 1000);
-            Assert.IsTrue(isRunning, "App isRunning (After start)");
-            StopOpenfinApp();
-            isRunning = await AppIsEventuallyRunning(app, false, 1000);
-            Assert.IsFalse(isRunning, "App isRunning (After stop)");
-        }
-
-        [Test]
-        public async Task IsRunningInitiallyOpen()
-        {
-
-            StartOpenfinApp();
-
-            Application app = await GetApplication(OPENFIN_APP_UUID);
-
-            bool isRunning = await AppIsEventuallyRunning(app, true, 1000);
-
-            Assert.IsTrue(isRunning, "App isRunning (Initially)");
-            StopOpenfinApp();
-            isRunning = await AppIsEventuallyRunning(app, false, 1000);
-            Assert.IsFalse(isRunning, "App isRunning (After Stop)");
-            StartOpenfinApp();
-            isRunning = await AppIsEventuallyRunning(app, true, 1000);
-            Assert.IsTrue(isRunning, "App isRunning (After Start)");
-        }
-
         [Test]
         public async Task AppEventsInitiallyClosed()
         {
@@ -283,98 +195,6 @@ const bounds = {{
             return processList[0] as Dictionary<string, object>;
         }
 
-        // TODO: Pending fix from OpenFin - https://openfin.zendesk.com/hc/requests/11460
-        //[Test]
-        //public async Task GetProcessList()
-        //{
-        //    StartOpenfinApp();
-
-        //    var processInfo = getProcessInfo();
-        //    long origWorkingSetSize = (long)processInfo["workingSetSize"];
-
-        //    Assert.Greater(origWorkingSetSize, 10000000, "working set at least 10MB");
-
-        //    driver.ExecuteScript("window.location = 'http://www.google.co.uk'");
-        //    await Task.Delay(2000);
-
-        //    processInfo = getProcessInfo();
-        //    long workingSetSize = (long)processInfo["workingSetSize"];
-
-        //    Assert.Greater(workingSetSize, 10000000, "working set at least 10MB");
-
-        //    string returnLocationScript = String.Format("window.location = '{0}index.html'", FILE_SERVER_ROOT_URL);
-        //    driver.ExecuteScript(returnLocationScript);
-        //    await Task.Delay(2000);
-
-        //    processInfo = getProcessInfo();
-        //    workingSetSize = (long)processInfo["workingSetSize"];
-
-        //    Assert.Greater(workingSetSize, 10000000, "working set at least 10MB");
-        //    Assert.Greater(workingSetSize, origWorkingSetSize * 0.7, "Similar size to original working set");
-        //    Assert.Less(workingSetSize, origWorkingSetSize * 1.3, "Similar size to original working set");
-        //}
-
-        [Test]
-        public void AppHasDefaultSize()
-        {
-            StartAppAndWaitForWindow();
-            var bounds = getWindowBounds();
-            Assert.AreEqual(600, bounds["width"]);
-            Assert.AreEqual(600, bounds["height"]);
-        }
-
-        [Test]
-        public void ResizeWindow()
-        {
-            StartAppAndWaitForWindow();
-            setWindowBounds(100, 150, 200, 300);
-            var bounds = getWindowBounds();
-            Assert.AreEqual(100, bounds["left"]);
-            Assert.AreEqual(150, bounds["top"]);
-            Assert.AreEqual(200, bounds["width"]);
-            Assert.AreEqual(300, bounds["height"]);
-
-        }
-
-        [Test]
-        public void RestoreSnapshot()
-        {
-            StartAppAndWaitForWindow();
-            int newLeft = 100;
-            int newTop = 150;
-            int newWidth = 200;
-            int newHeight = 300;
-            setWindowBounds(newLeft, newTop, newWidth, newHeight);
-
-            string createSnapshotScript = $@"
-    const platform = await fin.Platform.getCurrent();
-    const snapshot = await platform.getSnapshot(); // Raises 'no action registered' exception
-    return JSON.stringify(snapshot)
-";
-            string snapshot = driver.ExecuteScript(createSnapshotScript) as string;
-            StopOpenfinApp();
-            StartAppAndWaitForWindow();
-
-            // Reloads with default size
-            var bounds = getWindowBounds();
-            Assert.AreEqual(600, bounds["width"]);
-            Assert.AreEqual(600, bounds["height"]);
-
-            string escapedSnapshot = snapshot.Replace(@"\", @"\\"); // "\"s will be unescaped when injected into script string
-
-            string restoreSnapshotScript = $@"
-const platform = await fin.Platform.getCurrent();
-const snapshot = JSON.parse('{escapedSnapshot}');  // Raises 'no action registered' exception
-await platform.applySnapshot(snapshot);
-";
-            driver.ExecuteScript(restoreSnapshotScript);
-
-            bounds = getWindowBounds();
-            Assert.AreEqual(newLeft, bounds["left"]);
-            Assert.AreEqual(newTop, bounds["top"]);
-            Assert.AreEqual(newWidth, bounds["width"]);
-            Assert.AreEqual(newHeight, bounds["height"]);
-        }
 
         public void StopOpenfinApp()
         {
@@ -387,15 +207,6 @@ await platform.applySnapshot(snapshot);
                 driver.Quit();
             }
             driver = null;
-        }
-
-        public void StartAppAndWaitForWindow()
-        {
-            var getAppTask = GetApplication(OPENFIN_APP_UUID);
-            getAppTask.Wait();
-            Application app = getAppTask.Result;
-            StartOpenfinApp();
-            WindowIsEventuallyOpen(app, APP_WINDOW_LOAD_TIMEOUT_MS).Wait();
         }
 
         private async Task<bool> WindowIsEventuallyOpen(Application app, int timeout)
