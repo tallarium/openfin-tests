@@ -15,7 +15,7 @@ namespace OpenfinDesktop
         {
             var taskCompletionSource = new TaskCompletionSource<bool>();
             RuntimeOptions options = new RuntimeOptions();
-            options.Version = "14.78.45.31";
+            options.Version = "23.96.67.7";
             Runtime runtime = Openfin.Desktop.Runtime.GetRuntimeInstance(options);
             runtime.Connect(() =>
             {
