@@ -3,25 +3,26 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 
 function init(){
-    /* Code common to both OpenFin and browser to go above.
-     Then the specific code for OpenFin and browser only to be
-     targeted in the try/catch block below.
-     */
-    try{
-        fin.desktop.main(function(){
-            initWithOpenFin();
-        })
-    }catch(err){
-        initNoOpenFin();
+    if (window.fin) {
+        initWithOpenFin();
+    } else if (window.__TAURI__) {
+        initWithTauri();
+    } else {
+        initNoContainer();
     }
-};
+}
 
 function initWithOpenFin(){
     console.log("OpenFin is available");
     // Your OpenFin specific code to go here...
 }
 
-function initNoOpenFin(){
-    alert("OpenFin is not available - you are probably running in a browser.");
+function initWithTauri(){
+    console.log("Tauri is available");
+    // Your Tauri specific code to go here...
+}
+
+function initNoContainer(){
+    alert("No container available - you are probably running in a browser.");
     // Your browser-only specific code to go here...
 }
