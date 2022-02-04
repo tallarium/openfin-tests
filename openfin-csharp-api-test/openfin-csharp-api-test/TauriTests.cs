@@ -63,5 +63,37 @@ namespace OpenfinDesktop
             Assert.AreEqual(true, value);
         }
 
+        [Test]
+        public void CreateWindow()
+        {
+            StartTauriApp();
+
+            string getWindowCount = @"
+    return window.__TAURI__.window.getAll().length;
+";
+            long? windowCount = driver.ExecuteScript(getWindowCount) as long?;
+
+            Assert.AreEqual(1, windowCount);
+
+            string createWindow = @"
+    done = arguments[arguments.length - 1];
+    tauri = window.__TAURI__;
+    w = new tauri.window.WebviewWindow('child', {
+        title: 'Child',
+        resizable: true,
+        width: 700,
+        height: 600,
+        url: 'child.html'
+  });
+    w.once('tauri://created', function () {
+        done();
+    })
+";
+            driver.ExecuteAsyncScript(createWindow);
+
+            windowCount = driver.ExecuteScript(getWindowCount) as long?;
+
+            Assert.AreEqual(2, windowCount);
+        }
     }
 }
