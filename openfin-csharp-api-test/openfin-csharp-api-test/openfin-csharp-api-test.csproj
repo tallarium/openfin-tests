@@ -70,7 +70,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="OpenfinDesktop">
-      <Version>17.2.0</Version>
+      <Version>17.3.3</Version>
     </PackageReference>
     <PackageReference Include="Selenium.WebDriver">
       <Version>3.141.0</Version>
