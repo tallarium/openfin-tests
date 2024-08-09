@@ -29,6 +29,8 @@ namespace OpenfinDesktop
 
         private static readonly string FILE_SERVER_ROOT_URL = String.Format("http://localhost:{0}/", FILE_SERVER_PORT);
         private static readonly string APP_CONFIG_URL = FILE_SERVER_ROOT_URL + "app.json";
+        private static readonly string MAIN_WINDOW_URL = FILE_SERVER_ROOT_URL + "index.html";
+
 
         ChromeDriver driver;
         HttpFileServer fileServer;
@@ -398,7 +400,18 @@ await platform.applySnapshot(snapshot);
             WindowIsEventuallyOpen(app, APP_WINDOW_LOAD_TIMEOUT_MS).Wait();
         }
 
-        private async Task<bool> WindowIsEventuallyOpen(Application app, int timeout)
+        private bool SwitchToMainWindow()
+        {
+            int index = 0;
+            while (driver.Url != MAIN_WINDOW_URL && index < driver.WindowHandles.Count)
+            {
+                driver.SwitchTo().Window(driver.WindowHandles[index]);
+                index++;
+            }
+            return driver.Url == MAIN_WINDOW_URL;
+        }
+
+        private async Task<bool> MainWindowIsEventuallyOpen(int timeout)
         {
             return await IsEventually(() =>
             {
