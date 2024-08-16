@@ -29,6 +29,8 @@ namespace OpenfinDesktop
 
         private static readonly string FILE_SERVER_ROOT_URL = String.Format("http://localhost:{0}/", FILE_SERVER_PORT);
         private static readonly string APP_CONFIG_URL = FILE_SERVER_ROOT_URL + "app.json";
+        private static readonly string MAIN_WINDOW_URL = FILE_SERVER_ROOT_URL + "index.html";
+
 
         ChromeDriver driver;
         HttpFileServer fileServer;
@@ -98,17 +100,6 @@ namespace OpenfinDesktop
             {
                 // Error
                 taskCompletionSource.SetException(new Exception(ack.getJsonObject().ToString()));
-            });
-            return taskCompletionSource.Task;
-        }
-
-        private Task<bool> WindowsWereCreated(Application app)
-        {
-            var taskCompletionSource = new TaskCompletionSource<bool>();
-
-            app.getChildWindows((children) =>
-            {
-                taskCompletionSource.SetResult(children?.Count > 0);
             });
             return taskCompletionSource.Task;
         }
@@ -196,7 +187,7 @@ const bounds = {{
             bool isRunning = await AppIsEventuallyRunning(app, false, 1000);
 
             Assert.IsFalse(isRunning, "App isRunning (Initially)");
-            StartOpenfinApp();
+            StartAppAndWaitForMainWindow();
             isRunning = await AppIsEventuallyRunning(app, true, 1000);
             Assert.IsTrue(isRunning, "App isRunning (After start)");
             StopOpenfinApp();
@@ -208,7 +199,7 @@ const bounds = {{
         public async Task IsRunningInitiallyOpen()
         {
 
-            StartOpenfinApp();
+            StartAppAndWaitForMainWindow();
 
             Application app = await GetApplication(OPENFIN_APP_UUID);
 
@@ -218,7 +209,7 @@ const bounds = {{
             StopOpenfinApp();
             isRunning = await AppIsEventuallyRunning(app, false, 1000);
             Assert.IsFalse(isRunning, "App isRunning (After Stop)");
-            StartOpenfinApp();
+            StartAppAndWaitForMainWindow();
             isRunning = await AppIsEventuallyRunning(app, true, 1000);
             Assert.IsTrue(isRunning, "App isRunning (After Start)");
         }
@@ -240,7 +231,7 @@ const bounds = {{
                 closedFired = true;
             };
 
-            StartOpenfinApp();
+            StartAppAndWaitForMainWindow();
             await IsEventually(() => { return startedFired; }, true, 500);
             Assert.IsTrue(startedFired, "'Started' event is fired");
             StopOpenfinApp();
@@ -254,7 +245,7 @@ const bounds = {{
             bool startedFired = false;
             bool closedFired = false;
 
-            StartOpenfinApp();
+            StartAppAndWaitForMainWindow();
 
             Application app = await GetApplication(OPENFIN_APP_UUID);
             app.Started += (object sender, ApplicationEventArgs e) =>
@@ -270,7 +261,7 @@ const bounds = {{
             StopOpenfinApp();
             await IsEventually(() => { return closedFired; }, true, 500);
             Assert.IsTrue(closedFired, "'Closed' event is fired");
-            StartOpenfinApp();
+            StartAppAndWaitForMainWindow();
             await IsEventually(() => { return startedFired; }, true, 500);
             Assert.IsTrue(startedFired, "'Started' event is fired");
         }
@@ -317,7 +308,7 @@ const bounds = {{
         [Test]
         public void AppHasDefaultSize()
         {
-            StartAppAndWaitForWindow();
+            StartAppAndWaitForMainWindow();
             var bounds = getWindowBounds();
             Assert.AreEqual(600, bounds["width"]);
             Assert.AreEqual(600, bounds["height"]);
@@ -326,7 +317,7 @@ const bounds = {{
         [Test]
         public void ResizeWindow()
         {
-            StartAppAndWaitForWindow();
+            StartAppAndWaitForMainWindow();
             setWindowBounds(100, 150, 200, 300);
             var bounds = getWindowBounds();
             Assert.AreEqual(100, bounds["left"]);
@@ -339,7 +330,7 @@ const bounds = {{
         [Test]
         public void RestoreSnapshot()
         {
-            StartAppAndWaitForWindow();
+            StartAppAndWaitForMainWindow();
             int newLeft = 100;
             int newTop = 150;
             int newWidth = 200;
@@ -353,7 +344,7 @@ const bounds = {{
 ";
             string snapshot = driver.ExecuteScript(createSnapshotScript) as string;
             StopOpenfinApp();
-            StartAppAndWaitForWindow();
+            StartAppAndWaitForMainWindow();
 
             // Reloads with default size
             var bounds = getWindowBounds();
@@ -389,22 +380,28 @@ await platform.applySnapshot(snapshot);
             driver = null;
         }
 
-        public void StartAppAndWaitForWindow()
+        public void StartAppAndWaitForMainWindow()
         {
-            var getAppTask = GetApplication(OPENFIN_APP_UUID);
-            getAppTask.Wait();
-            Application app = getAppTask.Result;
             StartOpenfinApp();
-            WindowIsEventuallyOpen(app, APP_WINDOW_LOAD_TIMEOUT_MS).Wait();
+            MainWindowIsEventuallyOpen(APP_WINDOW_LOAD_TIMEOUT_MS).Wait();
         }
 
-        private async Task<bool> WindowIsEventuallyOpen(Application app, int timeout)
+        private bool SwitchToMainWindow()
+        {
+            int index = 0;
+            while (driver.Url != MAIN_WINDOW_URL && index < driver.WindowHandles.Count)
+            {
+                driver.SwitchTo().Window(driver.WindowHandles[index]);
+                index++;
+            }
+            return driver.Url == MAIN_WINDOW_URL;
+        }
+
+        private async Task<bool> MainWindowIsEventuallyOpen(int timeout)
         {
             return await IsEventually(() =>
             {
-                Task<bool> windowsWereCreatedCheck = WindowsWereCreated(app);
-                windowsWereCreatedCheck.Wait();
-                return windowsWereCreatedCheck.Result;
+                return SwitchToMainWindow();
             }, true, timeout);
         }
 
