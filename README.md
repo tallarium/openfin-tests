@@ -9,6 +9,9 @@ OpenFin provide a (pretty inactive) project demonstrating running tests in JavaS
 npm install -g openfin-cli
 ```
 
+## .NET Framework
+Ensure you have .NET Framework 4.6.1 Developer Pack download installed as that is required for these tests
+
 ## Testing runtimes
 ### Selenium.WebDriver.ChromeDriver
 The version of Selenium.WebDriver.ChromeDriver needs to match the version of Chrome used by the OpenFin runtime defined in app.json
@@ -25,3 +28,18 @@ You can run the nunit tests from the command line
 
 ## Limitations
 Currently each nunit test needs to run independently to ensure they run successfully.
+
+### List all tests
+To list all the tests, you can run the command
+
+```
+& "$env:USERPROFILE\.nuget\packages\NUnit.ConsoleRunner\3.11.1\tools\nunit3-console.exe" bin\Debug\OpenfinDesktopTests.exe --explore
+```
+
+### Running each tests
+To run each tests separately, we shoudl use the command
+
+```
+"$env:USERPROFILE\.nuget\packages\NUnit.ConsoleRunner\3.11.1\tools\nunit3-console.exe" bin\Debug\OpenfinDesktopTests.exe --where "test=={TEST_NAME}"
+```
+

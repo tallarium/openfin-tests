@@ -2,7 +2,7 @@
   "devtools_port": 9090,
   "runtime": {
     "arguments": "--remote-debugging-port=4444",
-    "version": "19.89.59.24"
+    "version": "44.146.100.109"
   },
   "platform": {
     "uuid": "openfin-tests",
